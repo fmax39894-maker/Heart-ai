@@ -1,97 +1,41 @@
 <!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#080d1a">
-<title>Learning AI</title>
-<link rel="stylesheet" href="/style.css">
-</head>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#070b18"><title>Learning AI — Ask</title><link rel="stylesheet" href="/style.css"></head>
 <body>
-<div id="loginScreen" class="login-screen">
-  <div class="login-glow"></div>
-  <section class="login-card">
-    <div class="logo">🧠</div>
-    <div class="eyebrow">PRIVATE DEVELOPER ACCESS</div>
-    <h1>Learning AI</h1>
-    <p class="subtitle">Your private learning assistant</p>
-    <div class="password-wrap">
-      <span>🔐</span>
-      <input id="password" type="password" placeholder="Developer password" autocomplete="off">
-      <button id="showPassword" type="button" aria-label="Show password">◉</button>
-    </div>
-    <button id="loginButton" class="unlock">Unlock <span>→</span></button>
-    <div id="loginMessage" class="login-message"></div>
-    <div class="no-key">No OpenAI key is required for learned answers.</div>
-  </section>
-</div>
+<div class="ambient ambient-a"></div><div class="ambient ambient-b"></div><div class="vfx-line vfx-line-a"></div><div class="vfx-line vfx-line-b"></div>
 
-<div id="app" class="hidden">
-  <header class="topbar">
-    <button id="menuButton" class="round-button" aria-label="Open menu">☰</button>
-    <div class="brand">
-      <div class="brand-logo">🧠</div>
-      <div><strong>Learning AI</strong><small>Private learning assistant</small></div>
-    </div>
-    <div id="status" class="status"><i></i><span>Ready</span></div>
-  </header>
+<section id="loginScreen" class="login-screen"><div class="login-card glass">
+<div class="brand-icon">🧠</div><div class="eyebrow">PRIVATE DEVELOPER AREA</div><h1>Learning AI</h1><p class="login-sub">Password protected assistant</p>
+<form id="loginForm"><div class="input-wrap"><span>🔐</span><input id="password" type="password" autocomplete="current-password" placeholder="Developer password" required><button id="showPassword" class="icon-btn" type="button">◉</button></div><button class="primary-btn full" type="submit">🔓 Unlock</button></form>
+<div id="loginMessage" class="login-message"></div><div class="mini-note">No OpenAI API key is required. The Ask endpoint uses the built-in learning engine.</div>
+</div></section>
 
-  <div id="overlay" class="overlay hidden"></div>
+<section id="app" class="app hidden"><header class="topbar glass">
+<div class="brand"><div class="brand-icon small">🧠</div><div><div class="brand-title">Learning AI</div><div class="brand-sub">Ask anything</div></div></div>
+<div class="header-actions"><div id="connectionDot" class="status-pill"><span class="status-dot"></span><span id="statusText">Ready</span></div><button id="menuButton" class="menu-btn" type="button">☰</button></div>
+</header>
 
-  <aside id="sidebar" class="sidebar">
-    <div class="side-head">
-      <div><strong>Control Center</strong><small>Developer tools</small></div>
-      <button id="closeSidebar" class="close">×</button>
-    </div>
+<div id="drawerBackdrop" class="drawer-backdrop"></div><aside id="drawer" class="drawer glass">
+<div class="drawer-head"><div><div class="drawer-title">More</div><div class="drawer-sub">Controls & learning</div></div><button id="closeDrawer" class="close-btn" type="button">×</button></div>
+<div class="drawer-section"><div class="section-label">Appearance</div>
+<label class="setting-row"><span>Dark mode</span><input id="darkToggle" type="checkbox" checked><i></i></label>
+<label class="setting-row"><span>Gradient VFX</span><input id="gradientToggle" type="checkbox" checked><i></i></label>
+<label class="setting-row"><span>Side VFX</span><input id="sideVfxToggle" type="checkbox" checked><i></i></label>
+<label class="setting-row"><span>Fade answers</span><input id="fadeToggle" type="checkbox" checked><i></i></label></div>
+<div class="drawer-section"><div class="section-label">Answer controls</div>
+<label class="setting-row"><span>Multiple answers</span><input id="multipleToggle" type="checkbox"><i></i></label>
+<div class="progress-setting"><div class="progress-head"><span>Answer progress</span><b id="progressLabel">0%</b></div><div class="progress-track"><div id="progressBar" class="progress-bar"></div></div></div></div>
+<div class="drawer-section"><div class="section-label">Chat</div><button id="clearHistory" class="drawer-action danger">⌫ Clear history</button><button id="exportChat" class="drawer-action">⇩ Export chat</button></div>
+<div class="drawer-section"><div class="section-label">Developer</div><button id="lockButton" class="drawer-action">🔒 Lock assistant</button><div class="endpoint-card"><div class="endpoint-title">Ask endpoint</div><code>/api/ask</code><span>Built-in engine • no OpenAI key</span></div></div>
+</aside>
 
-    <section>
-      <div class="section-title">Appearance</div>
-      <label class="toggle-row">Dark mode
-        <span class="switch"><input id="themeToggle" type="checkbox"><b></b></span>
-      </label>
-    </section>
+<main id="chat" class="chat" aria-live="polite"></main><div id="typing" class="typing hidden"><span></span><span></span><span></span><em>Learning AI is thinking</em></div>
 
-    <section>
-      <div class="section-title">Ask API</div>
-      <p>Read-only endpoint for your learned Firestore knowledge.</p>
-      <div class="api-box">
-        <pre id="apiCode"></pre>
-        <button id="copyApi">Copy</button>
-      </div>
-      <div id="copyMessage" class="copy-message"></div>
-    </section>
+<div id="feedbackDock" class="feedback-dock glass"><div class="drag-handle" title="Drag">⠿</div><button id="noBtn" class="feedback-btn no" type="button">✕ <span>No</span></button><button id="yesBtn" class="feedback-btn yes" type="button">✓ <span>Yes</span></button></div>
 
-    <section>
-      <div class="section-title">Teach Learning AI</div>
-      <p>Use 📎 to import TXT/PDF files containing clear Question/Answer pairs.</p>
-    </section>
-  </aside>
+<form id="composer" class="composer glass"><div class="composer-top"><textarea id="messageInput" rows="1" placeholder="Ask your question..." autocomplete="off"></textarea><button id="sendButton" class="send-btn" type="submit">➤</button></div><div class="composer-bottom"><span>Enter to send • Shift + Enter for a new line</span><button id="boldButton" type="button" class="tiny-btn"><b>B</b> Bold</button></div></form>
 
-  <main id="messages" class="messages"></main>
-  <div id="typing" class="typing hidden"><span></span><span></span><span></span></div>
-
-  <form id="chatForm" class="composer">
-    <input id="fileInput" type="file" accept=".txt,.pdf,text/plain,application/pdf" hidden>
-    <button id="attachButton" type="button" class="attach" title="Teach with TXT or PDF">＋</button>
-    <input id="messageInput" type="text" placeholder="Ask Learning AI..." autocomplete="off">
-    <button class="send" type="submit" aria-label="Send">➤</button>
-  </form>
-
-  <div id="fileStatus" class="file-status"></div>
-
-  <div id="editModal" class="modal hidden">
-    <div class="modal-card">
-      <div class="modal-head"><strong>Edit AI answer</strong><button id="closeEdit" class="close">×</button></div>
-      <p>Saving an edit creates new learned knowledge; the original record is kept.</p>
-      <textarea id="editAnswer"></textarea>
-      <div class="modal-actions">
-        <button id="cancelEdit" class="secondary">Cancel</button>
-        <button id="saveEdit" class="primary">Save & Learn</button>
-      </div>
-      <div id="editMessage"></div>
-    </div>
-  </div>
-</div>
-<script src="/app.js"></script>
-</body>
-</html>
+<div id="editModal" class="modal hidden"><div class="modal-card glass"><div class="modal-head"><div><div class="drawer-title">Edit answer</div><div class="drawer-sub">Teach Learning AI</div></div><button id="closeEdit" type="button" class="close-btn">×</button></div>
+<textarea id="editAnswer" class="edit-area"></textarea><div class="save-mode"><label><input type="radio" name="saveMode" value="new" checked> Save as new context</label><label><input type="radio" name="saveMode" value="existing"> Replace existing answer</label></div><div id="editMessage" class="modal-message"></div><div class="modal-actions"><button id="cancelEdit" type="button" class="secondary-btn">Cancel</button><button id="saveEdit" type="button" class="primary-btn">Save & Learn</button></div></div></div>
+</section><script src="/app.js"></script></body></html>
