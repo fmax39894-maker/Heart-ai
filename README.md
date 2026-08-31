@@ -32,3 +32,11 @@ This build keeps the password-protected developer area and the built-in learning
 - `api/health.js` — health check
 - `vercel.json` — Vercel configuration
 - `.env.example` — environment variable example
+
+
+## v2 fixes
+- Clear Chat now clears the persisted chat immediately and keeps it empty after reload.
+- Fade Answers is persisted and controls incoming-answer animation.
+- Composer is taller and expands up to 220px for long messages.
+- Unknown questions enter learning mode: the next user message is saved as the answer for that question.
+- Yes/No widget remains off by default and can be enabled from More.

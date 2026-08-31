@@ -10,3 +10,17 @@
 .feedback-dock{position:fixed;right:14px;bottom:150px;width:128px;padding:7px;border-radius:18px;z-index:7;display:flex;flex-direction:column;gap:6px;touch-action:none}.drag-handle{text-align:center;color:#71809a;cursor:grab;font-size:14px;line-height:12px;padding:2px}.feedback-btn{border:0;border-radius:12px;padding:9px 10px;font-weight:900;font-size:14px;color:#fff;background:#121927}.feedback-btn:hover{background:linear-gradient(100deg,#232c3d,#39445b)}.feedback-btn.yes{background:#17231f}.feedback-btn.no{background:#1c1d25}
 .modal{position:fixed;inset:0;background:rgba(2,6,15,.7);backdrop-filter:blur(10px);z-index:20;display:grid;place-items:center;padding:18px}.modal-card{width:min(650px,100%);padding:22px;border-radius:25px}.edit-area{width:100%;min-height:220px;margin:18px 0 14px;padding:15px;border:1px solid rgba(154,180,230,.15);border-radius:16px;background:rgba(0,0,0,.2);outline:0;color:#f4f7ff;resize:vertical;line-height:1.55}.save-mode{display:flex;gap:10px;flex-wrap:wrap;color:#b8c5da;font-size:13px}.save-mode label{padding:9px 11px;border:1px solid rgba(154,180,230,.15);border-radius:12px}.modal-message{min-height:22px;color:#66dfad;font-size:12px;margin-top:10px}.modal-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:10px}
 @media(max-width:650px){.topbar{margin:8px 9px 0;min-height:72px}.status-pill{display:none}.brand-title{font-size:19px}.brand-sub{font-size:12px}.brand-icon.small{width:52px;height:52px;font-size:27px}.menu-btn,.clear-top{width:48px;height:48px}.chat{padding:18px 10px 190px}.bubble,.message-wrap{max-width:90%}.bubble{font-size:15.5px}.composer{width:calc(100% - 18px);bottom:9px;border-radius:23px}.composer textarea{font-size:17px}.send-btn{width:56px;height:56px}.feedback-dock{right:10px;bottom:150px;width:124px}.feedback-btn{padding:8px}.login-card{padding:32px 20px}.drawer{width:min(360px,94vw)}}
+
+/* v2 usability improvements */
+.composer{min-height:116px;padding:14px 14px 12px}
+.composer-top{min-height:78px}
+.composer textarea{min-height:76px;height:76px;max-height:220px;padding:13px 12px;font-size:18px}
+.chat{padding-bottom:205px}
+.feedback-dock{width:112px;padding:6px;border-radius:17px}
+.feedback-btn{padding:8px 7px;font-size:13px}
+body.no-fade .message.new-message{animation:none!important}
+body:not(.no-fade) .message.ai.new-message{animation:answerFade .55s ease both}
+@keyframes answerFade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.drawer{overscroll-behavior:contain}
+.drawer-action{cursor:pointer}
+@media(max-width:650px){.composer{min-height:126px;padding:12px 12px 10px}.composer-top{min-height:84px}.composer textarea{min-height:82px;font-size:17px}.chat{padding-bottom:220px}.send-btn{width:58px;height:58px}}
