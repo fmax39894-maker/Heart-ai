@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#070b18">
+  <title>Learning AI — Ask</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div id="loginScreen" class="login-screen">
+    <div class="login-card">
+      <div class="logo">🧠</div>
+      <h1>Learning AI</h1>
+      <p>Developer access required</p>
+      <form id="loginForm" autocomplete="off">
+        <div class="field">
+          <span>🔐</span>
+          <input id="password" type="password" autocomplete="current-password" placeholder="Developer password" aria-label="Developer password" required><button id="showPassword" type="button" class="show-password" aria-label="Show password">👁</button>
+        </div>
+        <button class="primary-btn" type="submit">🔓 Unlock</button>
+        <div id="loginMessage" class="form-message"></div>
+      </form>
+      <small>No OpenAI key is required. This version uses the built-in knowledge engine.</small>
+    </div>
+  </div>
+
+  <div id="app" class="app hidden">
+    <div class="ambient ambient-a"></div>
+    <div class="ambient ambient-b"></div>
+
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-logo">🧠</div>
+        <div>
+          <h1>Learning AI</h1>
+          <p>Ask anything</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <div id="statusPill" class="status-pill"><i></i><span>Ready</span></div>
+        <button id="menuButton" class="icon-btn" aria-label="Open menu">☰</button>
+      </div>
+    </header>
+
+    <div id="drawerBackdrop" class="drawer-backdrop"></div>
+    <aside id="drawer" class="drawer" aria-hidden="true">
+      <div class="drawer-head">
+        <div>
+          <strong>Learning AI</strong>
+          <span>Controls & knowledge</span>
+        </div>
+        <button id="closeDrawer" class="close-btn" aria-label="Close menu">×</button>
+      </div>
+
+      <section class="drawer-section">
+        <h3>Appearance</h3>
+        <label class="switch-row">Glow effects <input id="glowToggle" type="checkbox" checked><span class="switch"></span></label>
+        <label class="switch-row">Animated border <input id="borderToggle" type="checkbox" checked><span class="switch"></span></label>
+        <label class="switch-row">Speak answers <input id="speakToggle" type="checkbox"><span class="switch"></span></label>
+      </section>
+
+      <section class="drawer-section">
+        <h3>Answer feedback</h3>
+        <p class="drawer-note">Use the floating No / Yes control after an answer.</p>
+        <div class="feedback-preview"><span>✕ No</span><span>✓ Yes</span></div>
+      </section>
+
+      <section class="drawer-section">
+        <h3>Knowledge</h3>
+        <button id="importJsonButton" class="menu-btn">＋ Import JSON</button>
+        <input id="jsonInput" type="file" accept=".json,application/json" hidden>
+        <div id="importStatus" class="drawer-note">Built-in project knowledge is active.</div>
+        <pre class="json-example">{"items":[{"question":"What is the heart?","answer":"A muscular organ that pumps blood."}]}</pre>
+      </section>
+
+      <section class="drawer-section">
+        <h3>API</h3>
+        <div class="api-box"><code>POST /api/ask</code><br><span>No OpenAI key needed</span></div>
+        <button id="testApiButton" class="menu-btn">Test Ask Endpoint</button>
+        <div id="apiTestStatus" class="drawer-note"></div>
+      </section>
+
+      <button id="logoutButton" class="logout-btn">Lock developer screen</button>
+    </aside>
+
+    <main id="messages" class="messages" aria-live="polite">
+      <div class="welcome">
+        <div class="welcome-icon">✨</div>
+        <h2>What would you like to learn?</h2>
+        <p>Ask about your heart project, Arduino, BP, SpO₂, Bluetooth, sensors, AI, or anything you have taught the assistant.</p>
+        <div class="quick-grid">
+          <button data-question="What is the purpose of this project?">Project purpose</button>
+          <button data-question="How does Arduino work?">Arduino</button>
+          <button data-question="How does BP and SpO2 work?">BP & SpO₂</button>
+          <button data-question="How does the AI assistant work?">AI assistant</button>
+        </div>
+      </div>
+    </main>
+
+    <div id="typing" class="typing hidden"><span></span><span></span><span></span> Thinking</div>
+
+    <div id="feedbackDock" class="feedback-dock" aria-label="Answer feedback">
+      <div class="drag-handle">⠿</div>
+      <button id="noBtn" class="feedback no">✕ <span>No</span></button>
+      <button id="yesBtn" class="feedback yes">✓ <span>Yes</span></button>
+    </div>
+
+    <form id="chatForm" class="composer">
+      <button id="micButton" class="composer-icon" type="button" aria-label="Voice input">🎙</button>
+      <textarea id="messageInput" rows="1" placeholder="Ask your question..." autocomplete="off"></textarea>
+      <button id="sendButton" class="send-btn" type="submit" aria-label="Send">➤</button>
+    </form>
+    <div class="composer-hint">Enter to send · Shift + Enter for a new line</div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
