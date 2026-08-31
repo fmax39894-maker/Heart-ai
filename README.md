@@ -1,15 +1,34 @@
-# Learning AI — fixed Vercel version
+# Learning AI — Ask (UI updated)
 
-No OpenAI API key is required.
+This build keeps the password-protected developer area and the built-in learning Ask endpoint. **No OpenAI API key is required.**
 
-## Vercel settings
-Framework: **Other**
-Build Command: **empty**
-Output Directory: **empty**
-Do not add a custom Runtime.
+## Vercel
+- Framework Preset: **Other**
+- Build Command: **empty**
+- Output Directory: **empty**
+- Install Command: default / automatic
+- Environment Variable: `DEVELOPER_PASSWORD` = your chosen developer password
 
-Add this Environment Variable:
-`DEVELOPER_PASSWORD` = your developer password
+## Main changes
+- Smaller **Yes / No** floating feedback widget.
+- Feedback widget is **OFF by default** and can be enabled/disabled from **More**.
+- Widget remains draggable when enabled.
+- **Menu button on the left** opens the More drawer from the left.
+- **Clear chat button on the right** clears history.
+- Gradient background and animated side VFX controls.
+- Fade-in for newly received messages.
+- Progress bar stays inside More.
+- Edit answer: **Save as new context** or **Replace existing answer**.
+- Multiline input and `**bold text**` support.
+- Yes accepts the latest answer; No asks the endpoint to improve the latest answer without duplicating the user's question.
+- `/api/health` included for deployment testing.
 
-## Included
-Password login, working `/api/ask`, Yes/No feedback, draggable feedback panel, Clear History, Edit answer with New/Existing saving mode, bold text, fade-in messages, progress bar, Gradient/Side VFX controls, mobile More drawer, and health endpoint.
+## Files
+- `index.html` — UI
+- `style.css` — responsive neon/glass UI
+- `app.js` — chat, settings, feedback, editing, local history
+- `api/ask.js` — built-in learning engine
+- `api/unlock.js` — server-side password check
+- `api/health.js` — health check
+- `vercel.json` — Vercel configuration
+- `.env.example` — environment variable example
