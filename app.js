@@ -1,363 +1,405 @@
-(() => {
-  "use strict";
+const $ = id => document.getElementById(id);
 
-  // Change this one value if you want a different developer password.
-  // This is a client-side gate, not a secure server authentication system.
-  const DEVELOPER_PASSWORD = "learning123";
+let password = "";
+let unknownQuestion = "";
+let waitingForTeaching = false;
+let lastTurn = null;
+let editingTurn = null;
 
-  const $ = (id) => document.getElementById(id);
-  const loginScreen = $("loginScreen");
-  const app = $("app");
-  const loginForm = $("loginForm");
-  const password = $("password");
-  const showPassword = $("showPassword");
-  if (showPassword) {
-    showPassword.addEventListener("click", () => {
-      const visible = password.type === "text";
-      password.type = visible ? "password" : "text";
-      showPassword.textContent = visible ? "👁" : "🙈";
-    });
+const API_CODE = `const response = await fetch("${location.origin}/api/ask", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    question: "What is the heart?"
+  })
+});
+
+const data = await response.json();
+console.log(data.answer);`;
+
+function setStatus(text, error = false) {
+  $("status").classList.toggle("error", error);
+  $("status").querySelector("span").textContent = text;
+}
+
+function addMessage(text, who = "bot", turn = null) {
+  const el = document.createElement("div");
+  el.className = `message ${who}`;
+  el.textContent = text;
+  if (turn) turn.appendChild(el);
+  else $("messages").appendChild(el);
+  $("messages").scrollTop = $("messages").scrollHeight;
+  return el;
+}
+
+function addTurn(userText, botText, meta = {}) {
+  const turn = document.createElement("div");
+  turn.className = "turn";
+  turn.dataset.conversationId = meta.conversationId || "";
+  turn.dataset.knowledgeId = meta.knowledgeId || "";
+  turn.dataset.question = userText;
+  turn.dataset.answer = botText;
+
+  addMessage(userText, "user", turn);
+  addMessage(botText, "bot", turn);
+
+  const actions = document.createElement("div");
+  actions.className = "turn-actions";
+
+  const edit = document.createElement("button");
+  edit.className = "action-button";
+  edit.type = "button";
+  edit.textContent = "✏ Edit";
+  edit.onclick = () => openEdit(turn);
+
+  const undo = document.createElement("button");
+  undo.className = "action-button";
+  undo.type = "button";
+  undo.textContent = "↩ Remove";
+  undo.onclick = () => undoTurn(turn, undo);
+
+  actions.append(edit, undo);
+  turn.appendChild(actions);
+  $("messages").appendChild(turn);
+  $("messages").scrollTop = $("messages").scrollHeight;
+  lastTurn = turn;
+  return turn;
+}
+
+function typing(on) {
+  $("typing").classList.toggle("hidden", !on);
+}
+
+async function login() {
+  const p = $("password").value;
+  if (!p) {
+    $("loginMessage").textContent = "Enter the developer password.";
+    return;
   }
-  const loginMessage = $("loginMessage");
-  const messages = $("messages");
+
+  $("loginButton").disabled = true;
+  $("loginMessage").textContent = "";
+
+  try {
+    const r = await fetch("/api/login", {
+      method: "POST",
+      headers: { "x-developer-password": p }
+    });
+
+    const d = await r.json().catch(() => ({}));
+
+    if (!r.ok) {
+      $("loginMessage").textContent = d.error || `Login failed (${r.status})`;
+      $("loginButton").disabled = false;
+      return;
+    }
+
+    password = p;
+    sessionStorage.setItem("learningAiUnlocked", "1");
+
+    $("loginScreen").classList.add("hidden");
+    $("app").classList.remove("hidden");
+    setStatus("Ready");
+    addMessage("Hello! 🧠 I'm Learning AI.\nAsk me something from my learned knowledge.");
+    $("messageInput").focus();
+  } catch (e) {
+    $("loginMessage").textContent = "Unable to connect to the server.";
+    $("loginButton").disabled = false;
+  }
+}
+
+async function send(e) {
+  e.preventDefault();
+
   const input = $("messageInput");
-  const form = $("chatForm");
-  const sendButton = $("sendButton");
-  const typing = $("typing");
-  const statusPill = $("statusPill");
-  const statusText = statusPill.querySelector("span");
+  const text = input.value.trim();
 
-  let knowledge = [
-    {keys:["purpose","aim","project about","why did you make"],answer:"The purpose of this project is to demonstrate how a working heart model, health sensors, Arduino control, Bluetooth communication and an AI-style assistant can work together in one educational system."},
-    {keys:["arduino","microcontroller"],answer:"Arduino acts as the main controller. It receives information from sensors and controls connected components according to the program."},
-    {keys:["bp","blood pressure","blood pressure monitor"],answer:"The BP section is designed to display systolic and diastolic blood-pressure readings. In a real medical device, readings should come from a properly calibrated medical-grade sensor."},
-    {keys:["spo2","oxygen","oxygen level","pulse oximeter"],answer:"SpO₂ means peripheral oxygen saturation. A pulse-oximeter estimates blood oxygen saturation and pulse rate. This project is an educational prototype, not a medical diagnostic device."},
-    {keys:["sensor","sensors"],answer:"Depending on the project version, sensors can include a pulse/SpO₂ sensor and other inputs connected to Arduino. The exact sensor list can be changed through the imported knowledge JSON."},
-    {keys:["bluetooth","phone","mobile"],answer:"Bluetooth can connect the Arduino system to a phone so the phone can display readings and send control commands."},
-    {keys:["ai","artificial intelligence","assistant"],answer:"The assistant receives a written or spoken question, searches the project's knowledge, and returns a relevant educational answer. This no-key version does not call OpenAI or any paid AI service."},
-    {keys:["working heart","heart model","pump","light","cooling"],answer:"The working heart model demonstrates heart-related movement and controls. A pump or light can be controlled electronically depending on the hardware connected to Arduino."},
-    {keys:["presentation","explain project","how to explain"],answer:"For a presentation, explain the project in four parts: the problem, the hardware, how Arduino and the sensors work together, and how the phone/assistant makes the system easier to interact with."},
-    {keys:["battery","3.7v","power"],answer:"A 3.7V battery can be used only when the connected electronics receive the correct regulated voltage and current. Do not connect a battery directly to a component unless its voltage requirements are compatible."},
-    {keys:["heart","what is the heart"],answer:"The heart is a muscular organ that pumps blood through the body. It helps deliver oxygen and nutrients and carries carbon dioxide and other waste away from tissues."}
-  ];
+  if (!text || !password) return;
 
-  let lastQuestion = "";
-  let lastAnswer = "";
-  let lastAnswerRow = null;
-  let requestBusy = false;
+  input.value = "";
+  typing(true);
+  setStatus("Thinking…");
 
-  function normalize(s) {
-    return String(s || "").toLowerCase().replace(/[?!.,;:()[\]{}]/g," ").replace(/\s+/g," ").trim();
-  }
+  const previousQuestion = unknownQuestion;
+  const isTeachingReply = waitingForTeaching;
 
-  function localAnswer(question, forceImprove = false) {
-    const text = normalize(question);
-    let best = null, score = 0;
+  try {
+    const r = await fetch("/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-developer-password": password
+      },
+      body: JSON.stringify({
+        message: text,
+        previousQuestion,
+        isTeachingReply
+      })
+    });
 
-    for (const item of knowledge) {
-      let current = 0;
-      for (const key of item.keys) {
-        const k = normalize(key);
-        if (k && text.includes(k)) current += Math.max(1, k.length / 8);
-      }
-      if (current > score) { score = current; best = item; }
+    const d = await r.json().catch(() => ({}));
+    typing(false);
+
+    if (r.status === 401) {
+      password = "";
+      sessionStorage.removeItem("learningAiUnlocked");
+      location.reload();
+      return;
     }
 
-    if (best) {
-      if (!forceImprove) return best.answer;
-      return improve(best.answer, question);
+    if (!r.ok) {
+      setStatus("Server error", true);
+      addMessage(d.error || `Request failed (${r.status}).`);
+      return;
     }
 
-    const topic = text || "your question";
-    return `I do not have a trained answer for "${topic}" yet. Add a question and answer through Menu → Import JSON, then ask it again.`;
-  }
+    setStatus("Ready");
+    addTurn(text, d.answer || "No answer returned.", {
+      conversationId: d.conversationId,
+      knowledgeId: d.knowledgeId
+    });
 
-  function improve(answer, question) {
-    if (!answer) return localAnswer(question, false);
-    const clean = answer.trim();
-    return clean
-      .replace(/^The purpose of this project is to /i, "This project ")
-      .replace(/\s+/g, " ")
-      .replace(/\.$/, "") + ".";
-  }
-
-  function setStatus(text, busy=false) {
-    statusText.textContent = text;
-    statusPill.classList.toggle("busy", busy);
-  }
-
-  function addMessage(text, who="assistant", source="") {
-    const row = document.createElement("div");
-    row.className = "msg-row " + who;
-    const wrap = document.createElement("div");
-    wrap.className = "answer-wrap";
-    const bubble = document.createElement("div");
-    bubble.className = "bubble";
-    bubble.textContent = text;
-    wrap.appendChild(bubble);
-    if (source) {
-      const meta = document.createElement("div");
-      meta.className = "answer-meta";
-      meta.textContent = source;
-      wrap.appendChild(meta);
-    }
-    row.appendChild(wrap);
-    messages.appendChild(row);
-    messages.scrollTop = messages.scrollHeight;
-    return row;
-  }
-
-  function speak(text) {
-    if (!$("speakToggle").checked || !("speechSynthesis" in window)) return;
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.rate = 0.96;
-    u.pitch = 1;
-    u.volume = 1;
-    speechSynthesis.speak(u);
-  }
-
-  async function ask(question, improveMode=false) {
-    const q = String(question || "").trim();
-    if (!q || requestBusy) return;
-    requestBusy = true;
-    sendButton.disabled = true;
-    setStatus("Thinking...", true);
-    typing.classList.remove("hidden");
-
-    if (!improveMode) {
-      addMessage(q, "user");
-      input.value = "";
-      autoResize();
-    }
-
-    lastQuestion = q;
-
-    try {
-      const response = await fetch("/api/ask", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({question:q, improve:improveMode, previousAnswer:lastAnswer})
-      });
-
-      let data = null;
-      try { data = await response.json(); } catch (_) {}
-
-      if (!response.ok || !data || typeof data.answer !== "string") {
-        throw new Error((data && data.error) || `HTTP ${response.status}`);
-      }
-
-      lastAnswer = data.answer;
-      if (lastAnswerRow) lastAnswerRow.classList.remove("latest-answer");
-      lastAnswerRow = addMessage(lastAnswer, "assistant", data.source || "Built-in knowledge");
-      lastAnswerRow.classList.add("latest-answer");
-      speak(lastAnswer);
-    } catch (error) {
-      // Never show an OpenAI-key error. The local engine keeps the app usable.
-      const fallback = localAnswer(q, improveMode);
-      lastAnswer = fallback;
-      if (lastAnswerRow) lastAnswerRow.classList.remove("latest-answer");
-      lastAnswerRow = addMessage(fallback, "assistant", "Offline knowledge engine");
-      lastAnswerRow.classList.add("latest-answer");
-    } finally {
-      requestBusy = false;
-      sendButton.disabled = false;
-      typing.classList.add("hidden");
-      setStatus("Ready", false);
-      input.focus();
-    }
-  }
-
-  function openDrawer() {
-    $("drawer").classList.add("open");
-    $("drawer").setAttribute("aria-hidden","false");
-    $("drawerBackdrop").classList.add("open");
-  }
-  function closeDrawer() {
-    $("drawer").classList.remove("open");
-    $("drawer").setAttribute("aria-hidden","true");
-    $("drawerBackdrop").classList.remove("open");
-  }
-
-  function autoResize() {
-    input.style.height = "auto";
-    input.style.height = Math.min(input.scrollHeight, 130) + "px";
-  }
-
-  function loadKnowledge(data) {
-    const items = Array.isArray(data) ? data : data && Array.isArray(data.items) ? data.items : [];
-    const converted = items.map(item => {
-      const question = String(item.question || item.q || item.prompt || "").trim();
-      const answer = String(item.answer || item.a || "").trim();
-      return {
-        keys: question ? question.split(/\s+/).filter(w => w.length > 2) : [],
-        answer
-      };
-    }).filter(x => x.keys.length && x.answer);
-
-    if (!converted.length) throw new Error("JSON must contain items with question and answer.");
-    knowledge = [...knowledge, ...converted];
-  }
-
-  // Login
-  loginForm.addEventListener("submit", (e) => {
-    e.preventDefault();
-    if (password.value.trim() === DEVELOPER_PASSWORD) {
-      sessionStorage.setItem("learning_ai_unlocked","1");
-      loginScreen.classList.add("hidden");
-      app.classList.remove("hidden");
-      password.value = "";
-      setStatus("Ready");
-      input.focus();
+    if (d.unknown) {
+      unknownQuestion = d.askedQuestion || text;
+      waitingForTeaching = true;
     } else {
-      loginMessage.textContent = "Incorrect developer password.";
-      password.select();
+      unknownQuestion = "";
+      waitingForTeaching = false;
     }
-  });
-
-  if (sessionStorage.getItem("learning_ai_unlocked") === "1") {
-    loginScreen.classList.add("hidden");
-    app.classList.remove("hidden");
+  } catch (e) {
+    typing(false);
+    setStatus("Connection error", true);
+    addMessage("Connection failed. Check that the Vercel deployment is active.");
   }
+}
 
-  $("menuButton").addEventListener("click", openDrawer);
-  $("closeDrawer").addEventListener("click", closeDrawer);
-  $("drawerBackdrop").addEventListener("click", closeDrawer);
-  document.addEventListener("keydown", e => {
-    if (e.key === "Escape") closeDrawer();
-  });
+async function undoTurn(turn, button) {
+  if (turn.dataset.deleting === "1") return;
 
-  $("logoutButton").addEventListener("click", () => {
-    sessionStorage.removeItem("learning_ai_unlocked");
-    closeDrawer();
-    app.classList.add("hidden");
-    loginScreen.classList.remove("hidden");
-    password.focus();
-  });
+  turn.dataset.deleting = "1";
+  button.disabled = true;
+  button.textContent = "Removing…";
 
-  $("glowToggle").addEventListener("change", e => document.body.classList.toggle("glow-off", !e.target.checked));
-  $("borderToggle").addEventListener("change", e => document.body.classList.toggle("border-off", !e.target.checked));
-
-  form.addEventListener("submit", e => {
-    e.preventDefault();
-    ask(input.value);
-  });
-
-  input.addEventListener("input", autoResize);
-  input.addEventListener("keydown", e => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      form.requestSubmit();
-    }
-  });
-
-  document.querySelectorAll("[data-question]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      input.value = btn.dataset.question;
-      autoResize();
-      input.focus();
+  try {
+    const r = await fetch("/api/delete-message", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-developer-password": password
+      },
+      body: JSON.stringify({
+        conversationId: turn.dataset.conversationId,
+        knowledgeId: turn.dataset.knowledgeId,
+        deleteKnowledge: false
+      })
     });
-  });
 
-  $("yesBtn").addEventListener("click", () => {
-    if (!lastAnswer) return;
-    setStatus("Answer marked perfect");
-    setTimeout(() => setStatus("Ready"), 1000);
-  });
+    const d = await r.json().catch(() => ({}));
 
-  $("noBtn").addEventListener("click", () => {
-    if (!lastQuestion) return;
-    const previous = lastAnswer || "";
-    addMessage("No — please improve the previous answer.", "user");
-    ask(lastQuestion, true);
-    if (previous) lastAnswer = previous;
-  });
-
-  // Import JSON
-  $("importJsonButton").addEventListener("click", () => $("jsonInput").click());
-  $("jsonInput").addEventListener("change", async e => {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-    try {
-      const data = JSON.parse(await file.text());
-      loadKnowledge(data);
-      $("importStatus").textContent = "Imported successfully. New knowledge is active.";
-      $("importStatus").style.color = "#55ddb0";
-    } catch (err) {
-      $("importStatus").textContent = "Import failed: " + err.message;
-      $("importStatus").style.color = "#ff8da4";
-    } finally {
-      e.target.value = "";
+    if (r.status === 401) {
+      location.reload();
+      return;
     }
-  });
 
-  $("testApiButton").addEventListener("click", async () => {
-    const out = $("apiTestStatus");
-    out.textContent = "Testing /api/ask...";
-    try {
-      const r = await fetch("/api/ask?question=What%20is%20the%20heart%3F");
-      const d = await r.json();
-      if (!r.ok || !d.answer) throw new Error(d.error || "Endpoint failed");
-      out.textContent = "✓ Ask endpoint is working.";
-      out.style.color = "#55ddb0";
-    } catch (e) {
-      out.textContent = "Endpoint unavailable. The app will use local fallback.";
-      out.style.color = "#ffb3c2";
+    if (!r.ok) throw new Error(d.error || "Remove failed");
+
+    if (turn === lastTurn) {
+      lastTurn = null;
+      unknownQuestion = "";
+      waitingForTeaching = false;
     }
-  });
 
-  // Movable feedback panel
-  const dock = $("feedbackDock");
-  let dragging = false, startX = 0, startY = 0, startLeft = 0, startTop = 0;
-
-  function startDrag(clientX, clientY) {
-    const r = dock.getBoundingClientRect();
-    dragging = true;
-    startX = clientX; startY = clientY;
-    startLeft = r.left; startTop = r.top;
-    dock.style.right = "auto";
-    dock.style.bottom = "auto";
-    dock.style.left = r.left + "px";
-    dock.style.top = r.top + "px";
+    turn.remove();
+  } catch (e) {
+    button.disabled = false;
+    button.textContent = "↩ Remove";
+    addMessage(e.message || "Could not remove this turn.");
   }
-  function moveDrag(clientX, clientY) {
-    if (!dragging) return;
-    const x = Math.max(5, Math.min(window.innerWidth - dock.offsetWidth - 5, startLeft + clientX - startX));
-    const y = Math.max(5, Math.min(window.innerHeight - dock.offsetHeight - 5, startTop + clientY - startY));
-    dock.style.left = x + "px";
-    dock.style.top = y + "px";
+}
+
+function openEdit(turn) {
+  editingTurn = turn;
+  $("editAnswer").value = turn.dataset.answer || "";
+  $("editMessage").textContent = "";
+  $("editModal").classList.remove("hidden");
+  setTimeout(() => $("editAnswer").focus(), 50);
+}
+
+function closeEdit() {
+  $("editModal").classList.add("hidden");
+  editingTurn = null;
+}
+
+async function saveEdit() {
+  if (!editingTurn) return;
+
+  const answer = $("editAnswer").value.trim();
+  if (!answer) {
+    $("editMessage").textContent = "Enter an answer.";
+    return;
   }
-  function endDrag(){ dragging = false; }
 
-  dock.addEventListener("pointerdown", e => {
-    if (e.target.closest(".feedback")) return;
-    dock.setPointerCapture(e.pointerId);
-    startDrag(e.clientX,e.clientY);
-  });
-  dock.addEventListener("pointermove", e => moveDrag(e.clientX,e.clientY));
-  dock.addEventListener("pointerup", endDrag);
-  dock.addEventListener("pointercancel", endDrag);
+  const button = $("saveEdit");
+  button.disabled = true;
+  $("editMessage").textContent = "Saving and learning…";
 
-  // Voice input
-  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (Recognition) {
-    const rec = new Recognition();
-    rec.lang = "en-IN";
-    rec.interimResults = true;
-    rec.continuous = false;
-    $("micButton").addEventListener("click", () => {
-      try { rec.start(); setStatus("Listening...", true); } catch (_) {}
+  try {
+    const r = await fetch("/api/edit-answer", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-developer-password": password
+      },
+      body: JSON.stringify({
+        question: editingTurn.dataset.question,
+        answer,
+        knowledgeId: editingTurn.dataset.knowledgeId,
+        conversationId: editingTurn.dataset.conversationId
+      })
     });
-    rec.onresult = e => {
-      let t = "";
-      for (let i=e.resultIndex;i<e.results.length;i++) t += e.results[i][0].transcript;
-      input.value = t; autoResize();
-    };
-    rec.onend = () => setStatus("Ready");
-    rec.onerror = () => setStatus("Voice unavailable");
-  } else {
-    $("micButton").title = "Speech recognition is not supported in this browser";
+
+    const d = await r.json().catch(() => ({}));
+
+    if (r.status === 401) {
+      location.reload();
+      return;
+    }
+
+    if (!r.ok) throw new Error(d.error || "Save failed");
+
+    editingTurn.dataset.answer = answer;
+    editingTurn.dataset.knowledgeId = d.knowledgeId || editingTurn.dataset.knowledgeId;
+
+    const bot = editingTurn.querySelector(".message.bot");
+    if (bot) bot.textContent = answer;
+
+    closeEdit();
+  } catch (e) {
+    $("editMessage").textContent = e.message || "Unable to save.";
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function upload(file) {
+  if (!file) return;
+
+  const lower = file.name.toLowerCase();
+  if (!lower.endsWith(".txt") && !lower.endsWith(".pdf")) {
+    showStatus("Only TXT and PDF are supported.");
+    return;
   }
 
-  autoResize();
-})();
+  if (file.size > 8 * 1024 * 1024) {
+    showStatus("File must be 8 MB or smaller.");
+    return;
+  }
+
+  typing(true);
+  showStatus(`Learning ${file.name}…`);
+
+  const form = new FormData();
+  form.append("file", file);
+  form.append("topic", file.name.replace(/\.[^.]+$/, ""));
+
+  try {
+    const r = await fetch("/api/learn-file", {
+      method: "POST",
+      headers: { "x-developer-password": password },
+      body: form
+    });
+
+    const d = await r.json().catch(() => ({}));
+    typing(false);
+
+    if (r.status === 401) {
+      location.reload();
+      return;
+    }
+
+    if (!r.ok) {
+      addMessage(d.error || "Could not learn this file.");
+      showStatus("Learning failed.");
+      return;
+    }
+
+    addMessage(`📚 Learned ${d.pairs} Q&A pair${d.pairs === 1 ? "" : "s"} from "${d.filename}".`);
+    showStatus("Saved to Firestore.");
+  } catch (e) {
+    typing(false);
+    addMessage("Could not upload the file.");
+    showStatus("Upload failed.");
+  }
+}
+
+function showStatus(text) {
+  const el = $("fileStatus");
+  el.textContent = text;
+  el.classList.add("show");
+  clearTimeout(showStatus.timer);
+  showStatus.timer = setTimeout(() => el.classList.remove("show"), 3500);
+}
+
+function openSidebar() {
+  $("sidebar").classList.add("open");
+  $("overlay").classList.remove("hidden");
+}
+
+function closeSidebar() {
+  $("sidebar").classList.remove("open");
+  $("overlay").classList.add("hidden");
+}
+
+function initTheme() {
+  const dark = localStorage.getItem("learning-ai-theme") !== "light";
+  document.body.classList.toggle("light", !dark);
+  $("themeToggle").checked = dark;
+}
+
+$("loginButton").onclick = login;
+$("password").onkeydown = e => {
+  if (e.key === "Enter") login();
+};
+
+$("showPassword").onclick = () => {
+  const input = $("password");
+  input.type = input.type === "password" ? "text" : "password";
+};
+
+$("chatForm").onsubmit = send;
+
+$("attachButton").onclick = () => $("fileInput").click();
+$("fileInput").onchange = e => {
+  upload(e.target.files[0]);
+  e.target.value = "";
+};
+
+$("menuButton").onclick = openSidebar;
+$("closeSidebar").onclick = closeSidebar;
+$("overlay").onclick = closeSidebar;
+
+$("themeToggle").onchange = e => {
+  localStorage.setItem("learning-ai-theme", e.target.checked ? "dark" : "light");
+  document.body.classList.toggle("light", !e.target.checked);
+};
+
+$("apiCode").textContent = API_CODE;
+
+$("copyApi").onclick = async () => {
+  try {
+    await navigator.clipboard.writeText(API_CODE);
+    $("copyMessage").textContent = "Copied!";
+  } catch {
+    $("copyMessage").textContent = "Copy failed.";
+  }
+  setTimeout(() => $("copyMessage").textContent = "", 1800);
+};
+
+$("closeEdit").onclick = closeEdit;
+$("cancelEdit").onclick = closeEdit;
+$("saveEdit").onclick = saveEdit;
+$("editModal").onclick = e => {
+  if (e.target === $("editModal")) closeEdit();
+};
+
+initTheme();

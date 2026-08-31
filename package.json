@@ -1,8 +1,14 @@
 {
-  "name": "learning-ai-no-key",
-  "version": "1.0.0",
+  "name": "learning-ai",
+  "version": "4.0.0",
   "private": true,
-  "scripts": {
-    "start": "vercel dev"
+  "type": "module",
+  "engines": {
+    "node": "20.x"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.4.0",
+    "busboy": "^1.6.0",
+    "pdf-parse": "^1.1.1"
   }
 }
