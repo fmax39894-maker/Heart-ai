@@ -15,7 +15,7 @@ function persist(){localStorage.setItem(CK,JSON.stringify(history))}
 function load(){try{const raw=localStorage.getItem(CK);if(raw!==null){history=JSON.parse(raw||"[]")}else{const old=firstStored(OLD_CK);history=old?JSON.parse(old):[{role:"assistant",text:"Hello! I’m **Learning AI**. Ask me a question about your project, Arduino, sensors, BP/SpO₂, Bluetooth, or the working heart model.",ts:Date.now()}];if(!old)persist()}}catch{history=[]}pendingTeachQuestion=localStorage.getItem(PEND)||"";lastAiIndex=history.reduce((n,m,i)=>m.role==="assistant"?i:n,-1);render()}
 function render(){chat.innerHTML="";history.forEach((m,i)=>bubble(m.role,m.text,i,false));chat.scrollTop=chat.scrollHeight}
 function bubble(role,text,i,animate=true){const row=document.createElement("div");row.className="message "+(role==="user"?"user":"ai")+(animate?" new-message":"");const wrap=document.createElement("div");wrap.className="message-wrap";const b=document.createElement("div");b.className="bubble markdown";b.innerHTML=fmt(text);wrap.appendChild(b);const meta=document.createElement("div");meta.className="meta";meta.textContent=role==="user"?"You":"Learning AI";wrap.appendChild(meta);if(role==="assistant"){const t=document.createElement("div");t.className="ai-tools";const e=document.createElement("button");e.type="button";e.textContent="Edit";e.onclick=()=>openEdit(i);const c=document.createElement("button");c.type="button";c.textContent="Copy";c.onclick=async()=>{try{await navigator.clipboard.writeText(text);c.textContent="Copied"}catch{c.textContent="Copy failed"}setTimeout(()=>c.textContent="Copy",900)};t.append(e,c);wrap.appendChild(t)}row.appendChild(wrap);chat.appendChild(row);return row}
-function add(role,text){history.push({role,text,ts:Date.now()});persist();bubble(role,text,history.length-1,true);if(role==="assistant")lastAiIndex=history.length-1;chat.scrollTop=chat.scrollHeight}
+function add(role,text){history.push({role,text,ts:Date.now()});persist();bubble(role,text,history.length-1,true);if(role==="assistant"){lastAiIndex=history.length-1;const s=settings();feedbackDock.classList.toggle("hidden",!s.feedback)}chat.scrollTop=chat.scrollHeight}
 function replaceAssistant(i,text){if(i<0||!history[i]||history[i].role!=="assistant")return;history[i].text=text;history[i].ts=Date.now();persist();render();lastAiIndex=i}
 function status(t,on=false){statusText.textContent=t;statusPill.classList.toggle("online",on)}
 function setTyping(v){typing.classList.toggle("hidden",!v);if(v)status("Thinking…");else status("Ready",true)}
@@ -47,7 +47,48 @@ input.oninput=resize;input.onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey){e.prev
 function resize(){input.style.height="auto";input.style.height=Math.min(Math.max(input.scrollHeight,76),220)+"px"}
 $("boldButton").onclick=()=>{const a=input.selectionStart,b=input.selectionEnd,t=input.value.slice(a,b)||"bold text";input.setRangeText("**"+t+"**",a,b,"end");input.focus();resize()};
 $("yesBtn").onclick=()=>{if(lastAiIndex>=0){status("Answer accepted",true);setTimeout(()=>status("Ready",true),900)}};
-$("noBtn").onclick=async()=>{if(lastAiIndex<0)return;const idx=lastAiIndex;const q=[...history.slice(0,idx)].reverse().find(m=>m.role==="user")?.text||"";const previous=history[idx]?.text||"";if(!q)return;await ask(q,"NO: The previous answer was not satisfactory. Re-check the original question and give a better corrected answer. Do not defend the previous answer. Return only the improved answer.",{addUser:false,replaceIndex:idx,previousAnswer:previous,forceQuestion:true})};
+$("noBtn").onclick=async()=>{
+  if(lastAiIndex<0)return;
+  const idx=lastAiIndex;
+  const q=[...history.slice(0,idx)].reverse().find(m=>m.role==="user")?.text||"";
+  if(!q)return;
+  const previous=history[idx]?.text||"";
+
+  // A "No" is a real learning signal. Do not replace the answer with a
+  // useless generic message. First ask the built-in engine for a different
+  // answer. If it cannot produce one, wait for the user's next message and
+  // save that message as the correction for this exact question.
+  setTyping(true);setProgress(18);
+  try{
+    const r=await fetch("/api/ask",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+      question:q,history:history.slice(-12),learned:readLearned(),feedback:"NO",previousAnswer:previous
+    })});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok)throw Error(d.error||"Ask endpoint error.");
+    setProgress(100);
+
+    if(d.needsTeaching){
+      const prompt="I marked the previous answer as incorrect.\n\n**Please send the correct answer in your next message.** I will save it as the learned answer for this question and use it next time.";
+      replaceAssistant(idx,prompt);
+      pendingTeachQuestion=q;
+      localStorage.setItem(PEND,q);
+      lastAiIndex=-1;
+      feedbackDock.classList.add("hidden");
+      status("Waiting for your correction",true);
+    }else{
+      replaceAssistant(idx,d.answer||"I couldn't find a better answer yet.");
+      if(d.learned){
+        const learned=readLearned();
+        learned.push({question:q,answer:d.answer,createdAt:Date.now(),source:"feedback-no"});
+        saveLearned(learned);
+      }
+      status("Answer improved",true);
+    }
+  }catch(err){
+    replaceAssistant(idx,"**Could not improve the answer:** "+(err.message||"The Ask endpoint could not be reached."));
+    status("Endpoint error");
+  }finally{setTyping(false);setTimeout(()=>setProgress(0),650)}
+};
 function openEdit(i){editingIndex=i;$("editAnswer").value=history[i]?.text||"";$("editMessage").textContent="";$("editModal").classList.remove("hidden")}
 function closeEdit(){$("editModal").classList.add("hidden");editingIndex=-1}
 $("closeEdit").onclick=closeEdit;$("cancelEdit").onclick=closeEdit;

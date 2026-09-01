@@ -1,42 +1,44 @@
-# Learning AI — Ask (UI updated)
+# Learning AI — Ask (NO feedback learning fix)
 
-This build keeps the password-protected developer area and the built-in learning Ask endpoint. **No OpenAI API key is required.**
+A simple Vercel-ready Learning AI web app with a password-protected developer area and a built-in knowledge engine. **No OpenAI API key is required.**
 
-## Vercel
-- Framework Preset: **Other**
-- Build Command: **empty**
-- Output Directory: **empty**
-- Install Command: default / automatic
-- Environment Variable: `DEVELOPER_PASSWORD` = your chosen developer password
+## Important fix: No → Learn
 
-## Main changes
-- Smaller **Yes / No** floating feedback widget.
-- Feedback widget is **OFF by default** and can be enabled/disabled from **More**.
-- Widget remains draggable when enabled.
-- **Menu button on the left** opens the More drawer from the left.
-- **Clear chat button on the right** clears history.
-- Gradient background and animated side VFX controls.
-- Fade-in for newly received messages.
-- Progress bar stays inside More.
-- Edit answer: **Save as new context** or **Replace existing answer**.
-- Multiline input and `**bold text**` support.
-- Yes accepts the latest answer; No asks the endpoint to improve the latest answer without duplicating the user's question.
-- `/api/health` included for deployment testing.
+- **Yes** accepts the current answer.
+- **No** is treated as a real correction signal.
+- The app first asks the built-in engine for a genuinely different saved answer.
+- If no better saved answer exists, the app enters **teaching mode** and waits for the user's next message.
+- That next message is saved in `localStorage` against the original question.
+- Asking the same question later uses the learned answer.
+- The pending teaching question also survives a page refresh.
 
-## Files
-- `index.html` — UI
-- `style.css` — responsive neon/glass UI
-- `app.js` — chat, settings, feedback, editing, local history
-- `api/ask.js` — built-in learning engine
-- `api/unlock.js` — server-side password check
-- `api/health.js` — health check
-- `vercel.json` — Vercel configuration
-- `.env.example` — environment variable example
+## Vercel deployment
 
+Framework preset: **Other**
 
-## v2 fixes
-- Clear Chat now clears the persisted chat immediately and keeps it empty after reload.
-- Fade Answers is persisted and controls incoming-answer animation.
-- Composer is taller and expands up to 220px for long messages.
-- Unknown questions enter learning mode: the next user message is saved as the answer for that question.
-- Yes/No widget remains off by default and can be enabled from More.
+Build command: leave empty / disabled
+Output directory: leave empty / disabled
+Install command: leave empty / disabled
+Root directory: project root
+
+The `api/` folder contains Vercel serverless functions:
+
+- `POST /api/unlock`
+- `POST /api/ask`
+- `GET /api/health`
+
+## Environment variable
+
+Add this in Vercel Project Settings → Environment Variables:
+
+`DEVELOPER_PASSWORD=your-private-password`
+
+No OpenAI key is needed for this version.
+
+## Local testing
+
+This package is intended for Vercel. The API files are plain CommonJS serverless functions.
+
+## Browser storage
+
+Chat history, learned corrections, pending teaching questions, and UI settings are stored locally in the browser using `localStorage`.
