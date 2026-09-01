@@ -14,5 +14,42 @@ const K=[
 ];
 function n(s){return String(s||"").toLowerCase().replace(/[^a-z0-9\s./+-]/g," ").replace(/\s+/g," ").trim()}
 function score(q,keys){const x=n(q);return keys.split(/\s+/).reduce((z,k)=>z+(x.includes(k)?(k.length>4?3:1):0),0)}
-function findAnswer(q,learned,avoid=""){let best=null,bs=0;for(const [keys,a] of K){const s=score(q,keys);if(s>bs){bs=s;best=a}}for(const x of Array.isArray(learned)?learned:[]){if(x?.question&&x?.answer){const s=score(q,x.question);if(s>bs){bs=s;best=x.answer}}}if(avoid&&best===avoid){for(const [keys,a] of K){const s=score(q,keys);if(s>bs&&a!==avoid){bs=s;best=a}}}return best||"I don’t know that yet. Please send the correct answer in your next message, and I’ll learn it for this question."}
-module.exports=(req,res)=>{if(req.method!=="POST")return res.status(405).json({error:"Method not allowed"});try{let b=req.body;if(typeof b==="string"){try{b=JSON.parse(b)}catch{b={}}}const q=String(b?.question||"").trim();if(!q)return res.status(400).json({error:"Question is required."});const learned=Array.isArray(b?.learned)?b.learned:[];let answer=findAnswer(q,learned,b?.previousAnswer||"");if(String(b?.feedback||"").startsWith("NO:")){answer=findAnswer(q,learned,b?.previousAnswer||"");if(answer===(b?.previousAnswer||""))answer="Please re-check the question carefully and give a corrected, clearer answer based on the saved learning context."}const unknown=/^I don[’'’]t know that yet\./i.test(answer);return res.status(200).json({ok:true,answer,unknown,engine:"built-in-learning-engine"})}catch(e){console.error(e);return res.status(500).json({error:"The Ask endpoint failed."})}};
+function findAnswer(q,learned,avoid=""){let best=null,bs=0;for(const [keys,a] of K){const s=score(q,keys);if(s>bs){bs=s;best=a}}for(const x of Array.isArray(learned)?learned:[]){if(x?.question&&x?.answer){const s=score(q,x.question);if(s>bs){bs=s;best=x.answer}}}return best||null}
+
+module.exports=(req,res)=>{
+  if(req.method!=="POST")return res.status(405).json({error:"Method not allowed"});
+  try{
+    let b=req.body;if(typeof b==="string"){try{b=JSON.parse(b)}catch{b={}}}
+    const q=String(b?.question||"").trim();
+    if(!q)return res.status(400).json({error:"Question is required."});
+    const learned=Array.isArray(b?.learned)?b.learned:[];
+    const previous=String(b?.previousAnswer||"");
+    const isNo=String(b?.feedback||"").toUpperCase().startsWith("NO");
+    let answer=findAnswer(q,learned,previous);
+
+    if(isNo){
+      // Only return an automatic replacement when it is genuinely different
+      // from the answer the user rejected. Otherwise the frontend enters the
+      // teaching flow and treats the next user message as the correction.
+      if(answer && answer.trim()!==previous.trim()){
+        return res.status(200).json({ok:true,answer,unknown:false,learned:true,engine:"built-in-learning-engine"});
+      }
+      return res.status(200).json({
+        ok:true,answer:"",unknown:true,needsTeaching:true,
+        engine:"built-in-learning-engine"
+      });
+    }
+
+    if(!answer){
+      return res.status(200).json({
+        ok:true,answer:"I don’t know that yet. Please send the correct answer in your next message, and I’ll learn it for this question.",
+        unknown:true,needsTeaching:true,engine:"built-in-learning-engine"
+      });
+    }
+
+    return res.status(200).json({ok:true,answer,unknown:false,engine:"built-in-learning-engine"});
+  }catch(e){
+    console.error(e);
+    return res.status(500).json({error:"The Ask endpoint failed."});
+  }
+};
