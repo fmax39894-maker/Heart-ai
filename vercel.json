@@ -1,1 +1,7 @@
-{"cleanUrls":true,"trailingSlash":false}
+{
+  "functions": {
+    "api/extract.py": {
+      "maxDuration": 30
+    }
+  }
+}

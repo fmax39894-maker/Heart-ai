@@ -2,111 +2,120 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#070b18">
-<title>Learning AI — Ask</title>
-<link rel="stylesheet" href="/style.css">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#111827">
+<title>Image Extractor Pro</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#eaf0ff;background:#0b1020;font-synthesis:none}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 15% 0%,#1c2b55 0,transparent 38%),#0b1020}
+main{max-width:1080px;margin:auto;padding:28px 18px 64px}
+.top{display:flex;align-items:center;gap:12px;margin:6px 0 28px}.logo{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(135deg,#7c3aed,#2563eb);font-size:23px}
+h1{font-size:clamp(28px,5vw,44px);line-height:1.05;letter-spacing:-.04em;margin:0}
+.sub{color:#a8b4d1;margin:8px 0 0;line-height:1.55}
+.panel{border:1px solid #2a3653;background:#111a2d;border-radius:22px;padding:clamp(16px,3vw,26px);box-shadow:0 20px 70px #0003}
+label{font-size:14px;font-weight:700;display:block;margin:0 0 9px}
+.formrow{display:flex;gap:10px;align-items:stretch}
+input{flex:1;min-width:0;border:1px solid #3a496a;border-radius:13px;background:#0b1222;color:#f5f7ff;padding:15px 16px;font-size:16px;outline:none}
+input:focus{border-color:#818cf8;box-shadow:0 0 0 3px #6366f133}
+button{border:0;border-radius:13px;background:linear-gradient(135deg,#7c3aed,#2563eb);color:white;font-weight:750;padding:14px 18px;font-size:15px;cursor:pointer;white-space:nowrap}
+button:disabled{opacity:.55;cursor:wait}
+.hint{font-size:13px;color:#98a8c8;line-height:1.5;margin:12px 0 0}
+.status{min-height:24px;margin:16px 0 0;color:#c6d2ee;font-size:14px}
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:24px 0 12px}
+.count{font-weight:750}.smallbtn{padding:9px 12px;border:1px solid #354363;background:#17223a;font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,245px),1fr));gap:15px}
+.card{min-width:0;border:1px solid #263451;background:#111a2d;border-radius:17px;overflow:hidden}
+.thumb{height:205px;background:#080d18;display:grid;place-items:center;overflow:hidden}
+.thumb img{width:100%;height:100%;object-fit:contain}
+.meta{padding:13px}.url{font-size:12px;color:#a8b4d1;line-height:1.45;overflow-wrap:anywhere;margin:0 0 12px}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}.tag{font-size:11px;border:1px solid #354363;color:#c8d4ef;border-radius:99px;padding:3px 7px}
+.actions{display:flex;gap:7px;flex-wrap:wrap}.actions button,.actions a{font-size:12px;padding:9px 10px;border-radius:9px;text-decoration:none}
+.actions a{background:#1d2c4b;color:#dbeafe;font-weight:700}
+.empty{border:1px dashed #354363;border-radius:16px;padding:28px;text-align:center;color:#9eacc8;grid-column:1/-1}
+footer{font-size:12px;color:#7f8eac;line-height:1.6;margin-top:26px}
+@media(max-width:620px){.formrow{flex-direction:column}.formrow button{width:100%}.thumb{height:185px}}
+</style>
 </head>
 <body>
-<div class="ambient ambient-a"></div><div class="ambient ambient-b"></div>
-<div class="edge-vfx edge-left"></div><div class="edge-vfx edge-right"></div>
+<main>
+<header class="top">
+<div class="logo" aria-hidden="true">✦</div>
+<div><h1>Image Extractor Pro</h1><p class="sub">Find image links hidden inside public webpages.</p></div>
+</header>
 
-<section id="loginScreen" class="login-screen">
-  <div class="login-card glass">
-    <div class="brand-icon">🧠</div>
-    <div class="eyebrow">PRIVATE DEVELOPER AREA</div>
-    <h1>Learning AI</h1>
-    <p class="login-sub">Password protected assistant</p>
-    <form id="loginForm">
-      <div class="input-wrap">
-        <span>🔐</span>
-        <input id="password" type="password" autocomplete="current-password" placeholder="Developer password" required>
-        <button id="showPassword" class="icon-btn" type="button" aria-label="Show password">◉</button>
-      </div>
-      <button class="primary-btn full" type="submit">🔓 Unlock</button>
-    </form>
-    <div id="loginMessage" class="login-message"></div>
-    <div class="mini-note">No OpenAI API key is required. This version uses the built-in learning engine.</div>
-  </div>
+<section class="panel">
+<label for="pageUrl">Paste a webpage URL or direct image URL</label>
+<div class="formrow">
+<input id="pageUrl" type="url" placeholder="https://example.com/gallery" autocomplete="url" inputmode="url">
+<button id="extractBtn">Extract images ↗</button>
+</div>
+<p class="hint">Scans common image sources: Open Graph previews, Twitter cards, image tags, srcset, and direct image links. No account or API key required.</p>
+<div id="status" class="status" role="status" aria-live="polite"></div>
 </section>
 
-<section id="app" class="app hidden">
-  <header class="topbar glass">
-    <div class="header-side left-side">
-      <button id="menuButton" class="menu-btn" type="button" aria-label="Open menu">☰</button>
-      <div class="brand">
-        <div class="brand-icon small">🧠</div>
-        <div><div class="brand-title">Learning AI</div><div class="brand-sub">Ask anything</div></div>
-      </div>
-    </div>
-    <div class="header-side right-side">
-      <div id="connectionDot" class="status-pill"><span class="status-dot"></span><span id="statusText">Ready</span></div>
-      <button id="clearTop" class="clear-top" type="button" aria-label="Clear chat">⌫</button>
-    </div>
-  </header>
-
-  <div id="drawerBackdrop" class="drawer-backdrop"></div>
-  <aside id="drawer" class="drawer glass" aria-label="More settings">
-    <div class="drawer-head">
-      <div><div class="drawer-title">More</div><div class="drawer-sub">Controls & learning</div></div>
-      <button id="closeDrawer" class="close-btn" type="button" aria-label="Close menu">×</button>
-    </div>
-
-    <div class="drawer-section">
-      <div class="section-label">Appearance</div>
-      <label class="setting-row"><span>Dark mode</span><input id="darkToggle" type="checkbox" checked><i></i></label>
-      <label class="setting-row"><span>Gradient VFX</span><input id="gradientToggle" type="checkbox" checked><i></i></label>
-      <label class="setting-row"><span>Side VFX</span><input id="sideVfxToggle" type="checkbox" checked><i></i></label>
-      <label class="setting-row"><span>Fade answers</span><input id="fadeToggle" type="checkbox" checked><i></i></label>
-    </div>
-
-    <div class="drawer-section">
-      <div class="section-label">Answer controls</div>
-      <label class="setting-row"><span>Yes / No feedback widget</span><input id="feedbackToggle" type="checkbox"><i></i></label>
-      <label class="setting-row"><span>Multiple answers</span><input id="multipleToggle" type="checkbox"><i></i></label>
-      <div class="progress-setting"><div class="progress-head"><span>Answer progress</span><b id="progressLabel">0%</b></div><div class="progress-track"><div id="progressBar" class="progress-bar"></div></div></div>
-    </div>
-
-    <div class="drawer-section">
-      <div class="section-label">Chat</div>
-      <button id="clearHistory" class="drawer-action danger">⌫ Clear chat history</button>
-      <button id="exportChat" class="drawer-action">⇩ Export chat</button>
-    </div>
-
-    <div class="drawer-section">
-      <div class="section-label">Developer</div>
-      <button id="lockButton" class="drawer-action">🔒 Lock assistant</button>
-      <div class="endpoint-card"><div class="endpoint-title">Ask endpoint</div><code>POST /api/ask</code><span>Built-in engine • no OpenAI key</span></div>
-    </div>
-  </aside>
-
-  <main id="chat" class="chat" aria-live="polite"></main>
-  <div id="typing" class="typing hidden"><span></span><span></span><span></span><em>Learning AI is thinking</em></div>
-
-  <div id="feedbackDock" class="feedback-dock glass hidden" aria-label="Answer feedback">
-    <div class="drag-handle" title="Drag">⠿</div>
-    <button id="noBtn" class="feedback-btn no" type="button">✕ <span>No</span></button>
-    <button id="yesBtn" class="feedback-btn yes" type="button">✓ <span>Yes</span></button>
-  </div>
-
-  <form id="composer" class="composer glass">
-    <div class="composer-top">
-      <textarea id="messageInput" rows="1" placeholder="Ask your question..." autocomplete="off"></textarea>
-      <button id="sendButton" class="send-btn" type="submit" aria-label="Send">➤</button>
-    </div>
-    <div class="composer-bottom"><span>Enter to send • Shift + Enter for a new line</span><button id="boldButton" type="button" class="tiny-btn"><b>B</b> Bold</button></div>
-  </form>
-
-  <div id="editModal" class="modal hidden">
-    <div class="modal-card glass">
-      <div class="modal-head"><div><div class="drawer-title">Edit answer</div><div class="drawer-sub">Teach Learning AI</div></div><button id="closeEdit" type="button" class="close-btn">×</button></div>
-      <textarea id="editAnswer" class="edit-area" placeholder="Write the improved answer..."></textarea>
-      <div class="save-mode"><label><input type="radio" name="saveMode" value="new" checked> Save as new context</label><label><input type="radio" name="saveMode" value="existing"> Replace existing answer</label></div>
-      <div id="editMessage" class="modal-message"></div>
-      <div class="modal-actions"><button id="cancelEdit" type="button" class="secondary-btn">Cancel</button><button id="saveEdit" type="button" class="primary-btn">Save & Learn</button></div>
-    </div>
-  </div>
+<div class="toolbar">
+<div class="count" id="count">Your results will appear here</div>
+<button id="copyAll" class="smallbtn" hidden>Copy all image URLs</button>
+</div>
+<section id="results" class="grid" aria-live="polite">
+<div class="empty">Paste a public page URL above to begin.</div>
 </section>
-<script src="/app.js"></script>
+
+<footer>
+Some websites block automated requests, require sign-in, or load images with JavaScript; those pages may not expose images to this tool. Use images you own or have permission to download or share. This tool does not bypass access controls.
+</footer>
+</main>
+<script>
+const input=document.querySelector('#pageUrl');
+const extractBtn=document.querySelector('#extractBtn');
+const statusEl=document.querySelector('#status');
+const results=document.querySelector('#results');
+const count=document.querySelector('#count');
+const copyAll=document.querySelector('#copyAll');
+let currentUrls=[];
+
+function validHttpUrl(value){
+  try{const u=new URL(value);return ['http:','https:'].includes(u.protocol)&&!!u.hostname}catch{return false}
+}
+function makeCard(item,index){
+  const card=document.createElement('article');card.className='card';
+  const thumb=document.createElement('div');thumb.className='thumb';
+  const img=document.createElement('img');img.loading='lazy';img.alt='Extracted image '+(index+1);img.src=item.url;
+  img.onerror=()=>{thumb.innerHTML='';const msg=document.createElement('span');msg.textContent='Preview blocked by source';msg.style.cssText='color:#9aa8c3;font-size:13px';thumb.append(msg)};
+  thumb.append(img);
+  const meta=document.createElement('div');meta.className='meta';
+  const tags=document.createElement('div');tags.className='tags';
+  const tag=document.createElement('span');tag.className='tag';tag.textContent=item.source||'image';tags.append(tag);
+  const url=document.createElement('p');url.className='url';url.textContent=item.url;
+  const actions=document.createElement('div');actions.className='actions';
+  const open=document.createElement('a');open.href=item.url;open.target='_blank';open.rel='noopener noreferrer';open.textContent='Open image';
+  const copy=document.createElement('button');copy.className='smallbtn';copy.textContent='Copy URL';
+  copy.onclick=async()=>{try{await navigator.clipboard.writeText(item.url);copy.textContent='Copied ✓';setTimeout(()=>copy.textContent='Copy URL',1300)}catch{url.textContent='Select and copy: '+item.url}};
+  actions.append(open,copy);meta.append(tags,url,actions);card.append(thumb,meta);return card;
+}
+async function extract(){
+  const url=input.value.trim();
+  if(!validHttpUrl(url)){statusEl.textContent='Enter a valid public http:// or https:// URL.';input.focus();return}
+  extractBtn.disabled=true;extractBtn.textContent='Extracting…';statusEl.textContent='Fetching the page and checking image links…';
+  results.replaceChildren();currentUrls=[];copyAll.hidden=true;count.textContent='Working…';
+  try{
+    const res=await fetch('/api/extract',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.error||'Extraction failed.');
+    currentUrls=(data.images||[]).map(x=>x.url);
+    if(!currentUrls.length){statusEl.textContent='No image links were found. The site may block extraction or load images dynamically.';count.textContent='No results';results.innerHTML='<div class="empty">Try a different public webpage or paste a direct image URL.</div>';return}
+    (data.images||[]).forEach((item,i)=>results.append(makeCard(item,i)));
+    statusEl.textContent='Done. Choose an image and copy its direct URL.';
+    count.textContent=`${data.images.length} image${data.images.length===1?'':'s'} found`;
+    copyAll.hidden=false;
+  }catch(err){
+    statusEl.textContent=err.message||'Could not extract images. Try another URL.';
+    count.textContent='No results';results.innerHTML='<div class="empty">The page could not be read. It may block automated requests.</div>';
+  }finally{extractBtn.disabled=false;extractBtn.textContent='Extract images ↗'}
+}
+extractBtn.addEventListener('click',extract);
+input.addEventListener('keydown',e=>{if(e.key==='Enter')extract()});
+copyAll.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(currentUrls.join('\\n'));copyAll.textContent='Copied ✓';setTimeout(()=>copyAll.textContent='Copy all image URLs',1300)}catch{statusEl.textContent='Clipboard access unavailable. Copy URLs individually.'}});
+</script>
 </body>
 </html>

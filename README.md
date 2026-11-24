@@ -1,44 +1,23 @@
-# Learning AI — Ask (NO feedback learning fix)
+# Image Extractor Pro — Vercel
 
-A simple Vercel-ready Learning AI web app with a password-protected developer area and a built-in knowledge engine. **No OpenAI API key is required.**
+A responsive webpage that extracts public image URLs from direct image links and common HTML image metadata/tags.
 
-## Important fix: No → Learn
+## Deploy on Vercel
+1. Upload the contents of this folder to a GitHub repository.
+2. Import the repository at https://vercel.com/new.
+3. Choose Other if asked for a framework. Leave build/output commands empty.
+4. Deploy. No environment variables are needed.
 
-- **Yes** accepts the current answer.
-- **No** is treated as a real correction signal.
-- The app first asks the built-in engine for a genuinely different saved answer.
-- If no better saved answer exists, the app enters **teaching mode** and waits for the user's next message.
-- That next message is saved in `localStorage` against the original question.
-- Asking the same question later uses the learned answer.
-- The pending teaching question also survives a page refresh.
+## Use
+Open the deployed site, paste a public webpage URL, and press **Extract images**. Preview the results and copy an image URL for your Telegram bot's `IMAGE_LINKS` list.
 
-## Vercel deployment
+## Supported
+- Direct public image URLs
+- Open Graph and Twitter preview image metadata
+- Standard `<img>` tags, lazy image attributes, `srcset`, `<picture>` sources, and `link rel=image_src`
+- Up to 80 image candidates per page
 
-Framework preset: **Other**
+## Limitations
+This tool does not run page JavaScript, sign in, bypass paywalls, or bypass anti-bot restrictions. Some sites intentionally hide or block images. Use only images you have permission to download or share.
 
-Build command: leave empty / disabled
-Output directory: leave empty / disabled
-Install command: leave empty / disabled
-Root directory: project root
-
-The `api/` folder contains Vercel serverless functions:
-
-- `POST /api/unlock`
-- `POST /api/ask`
-- `GET /api/health`
-
-## Environment variable
-
-Add this in Vercel Project Settings → Environment Variables:
-
-`DEVELOPER_PASSWORD=your-private-password`
-
-No OpenAI key is needed for this version.
-
-## Local testing
-
-This package is intended for Vercel. The API files are plain CommonJS serverless functions.
-
-## Browser storage
-
-Chat history, learned corrections, pending teaching questions, and UI settings are stored locally in the browser using `localStorage`.
+This is a starter project for personal use. A public deployment should add rate limiting, usage limits, and further abuse protection.
